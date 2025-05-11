@@ -8,6 +8,12 @@ on:
   pull_request:
     types: [opened, edited]
 
+permissions:
+  contents: read
+  discussions: read
+  issues: write
+  pull-requests: write
+
 jobs:
   respond-to-mentions:
     runs-on: ubuntu-latest
@@ -19,6 +25,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml requests
 
       - name: Respond to mentions
         run: python .github/scripts/respond_to_mentions.py

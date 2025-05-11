@@ -14,7 +14,7 @@ with open(event_path) as f:
 # Determine comment body and response URL
 if "comment" in event_data:
     body = event_data["comment"]["body"]
-    post_url = event_data["comment"]["url"].replace("/comments/", "/issues/") + "/comments"
+    post_url = event_data["issue"]["comments_url"]  # <- safer
 elif "issue" in event_data:
     body = event_data["issue"].get("body", "")
     post_url = event_data["issue"]["comments_url"]
@@ -28,10 +28,10 @@ else:
 with open(".github/mention-config.yml") as f:
     config = yaml.safe_load(f)
 
-inactive_users = set(config.get("inactive_users", []))
+inactive_users = set(u.lower() for u in config.get("inactive_users", []))
 
 # Find mentions
-mentioned = set(re.findall(r'@([a-zA-Z0-9_-]+)', body))
+mentioned = set(u.lower() for u in re.findall(r'@([a-zA-Z0-9_-]+)', body))
 
 # Post message if an inactive user was mentioned
 for user in mentioned:
@@ -41,4 +41,8 @@ for user in mentioned:
             "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github.v3+json"
         }
-        requests.post(post_url, headers=headers, json={"body": message})
+        r= requests.post(post_url, headers=headers, json={"body": message})
+        if r.status_code >= 400:
+            print(f"Error posting comment: {r.status_code} - {r.text}")
+        else:
+            print(f"Posted comment for @{user}")
